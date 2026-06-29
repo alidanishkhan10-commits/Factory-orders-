@@ -579,8 +579,7 @@ function openFirm(firm) {
   document.getElementById('firm-title').textContent = firm === 'nonu' ? 'Nonu Garments' : 'WD Textile';
 
   const fab = document.getElementById('add-fab');
-  if (isAdmin) fab.classList.remove('hidden');
-  else fab.classList.add('hidden');
+  fab.classList.remove('hidden');
 
   renderOrders();
   show('orders-screen');

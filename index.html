@@ -4,6 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Factory Orders</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f1117">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Factory Orders">
+<meta name="mobile-web-app-capable" content="yes">
+
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
@@ -166,9 +178,24 @@
   }
   .order-card:active { border-color: var(--muted); }
 
+  .order-card.dispatch-today {
+    border-color: var(--red);
+    box-shadow: 0 0 0 1px rgba(239,68,68,0.35);
+    background: linear-gradient(135deg, rgba(239,68,68,0.08), var(--surface));
+  }
+  .order-card.dispatch-tomorrow {
+    border-color: rgba(239,68,68,0.5);
+    background: linear-gradient(135deg, rgba(239,68,68,0.05), var(--surface));
+  }
+
   .order-top {
     display: flex; justify-content: space-between; align-items: flex-start;
     margin-bottom: 10px;
+  }
+  .order-name-row { display: flex; align-items: baseline; gap: 8px; }
+  .order-number {
+    font-size: 12px; font-weight: 700; color: var(--muted);
+    background: var(--surface2); padding: 2px 8px; border-radius: 8px;
   }
   .order-name { font-size: 16px; font-weight: 700; }
   .order-qty  { font-size: 13px; color: var(--muted); margin-top: 2px; }
@@ -233,6 +260,7 @@
   }
 
   .modal h2 { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+  .modal p.sub { font-size: 14px; color: var(--muted); margin-bottom: 20px; line-height: 1.5; }
 
   .field { margin-bottom: 16px; }
   .field label { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase; display: block; margin-bottom: 8px; }
@@ -260,11 +288,24 @@
   .nonu-theme .btn-save { background: var(--accent-nonu); }
   .wd-theme   .btn-save { background: var(--accent-wd); }
 
+  .btn-delete-confirm {
+    flex: 2; padding: 13px;
+    border: none; border-radius: 12px; color: #fff;
+    font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit;
+    background: var(--red);
+  }
+
   /* ── DETAIL SCREEN ── */
   .detail-header {
     background: var(--surface);
     padding: 20px 16px 16px;
     border-bottom: 1px solid var(--border);
+  }
+  .detail-header .order-number-tag {
+    display: inline-block;
+    font-size: 12px; font-weight: 700; color: var(--muted);
+    background: var(--surface2); padding: 3px 10px; border-radius: 8px;
+    margin-bottom: 8px;
   }
   .detail-header h2 { font-size: 22px; font-weight: 800; }
   .detail-header .sub { font-size: 14px; color: var(--muted); margin-top: 4px; }
@@ -331,8 +372,26 @@
     display: flex; align-items: flex-start; gap: 10px;
   }
   .dispatch-alert.urgent {
-    background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: var(--red);
+    background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.4); color: var(--red);
+    animation: pulseRed 1.6s ease-in-out infinite;
   }
+  .dispatch-alert.today {
+    background: rgba(239,68,68,0.18); border-color: var(--red); color: var(--red);
+  }
+  @keyframes pulseRed {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.0); }
+    50%      { box-shadow: 0 0 0 4px rgba(239,68,68,0.12); }
+  }
+
+  /* ── DELETE BUTTON (detail page) ── */
+  .delete-section { padding: 4px 16px 28px; }
+  .btn-delete-order {
+    width: 100%; padding: 13px;
+    border-radius: 12px; border: 1px solid rgba(239,68,68,0.35);
+    background: rgba(239,68,68,0.08); color: var(--red);
+    font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .btn-delete-order:active { background: rgba(239,68,68,0.16); }
 
   /* ── PIN MODAL ── */
   .pin-modal { text-align: center; }
@@ -414,6 +473,7 @@
     <span class="badge" id="detail-status-badge"></span>
   </div>
   <div class="detail-header">
+    <div class="order-number-tag" id="detail-number-tag"></div>
     <h2 id="detail-name"></h2>
     <div class="sub" id="detail-sub"></div>
   </div>
@@ -423,6 +483,7 @@
     <h3>Timeline</h3>
     <div id="timeline-steps"></div>
   </div>
+  <div class="delete-section" id="delete-section"></div>
 </div>
 
 <!-- ══ ADD ORDER MODAL ══ -->
@@ -449,6 +510,19 @@
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('add-modal')">Cancel</button>
       <button class="btn-save" onclick="saveOrder()">Add Order</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DELETE CONFIRM MODAL ══ -->
+<div class="modal-overlay" id="delete-modal">
+  <div class="modal" id="delete-modal-inner">
+    <div class="modal-handle"></div>
+    <h2>Delete this order?</h2>
+    <p class="sub">Use this only if the order was created by mistake.</p>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('delete-modal')">Cancel</button>
+      <button class="btn-delete-confirm" onclick="confirmDeleteOrder()">Delete</button>
     </div>
   </div>
 </div>
@@ -498,6 +572,7 @@ const JSONBIN_API_KEY = "$2a$10$yS5dvViBUL3w5szoFGeafOKkRIUg1eiGHXkcjAswem1nQahv
 // ── STATE ────────────────────────────────────────────────────────────────
 let currentFirm = null;
 let currentOrderId = null;
+let orderToDeleteId = null;
 let isAdmin = false;
 let pinBuffer = "";
 let orders = { nonu: [], wd: [] };
@@ -540,6 +615,14 @@ async function pullFromCloud() {
       orders = d.record;
       saveLocal();
       if (currentFirm) renderOrders();
+      // keep detail screen fresh if open and order still exists
+      if (currentOrderId && getOrder(currentOrderId)) {
+        const detailScreen = document.getElementById('detail-screen');
+        if (detailScreen.classList.contains('active')) openDetail(currentOrderId);
+      } else if (currentOrderId && !getOrder(currentOrderId)) {
+        // order was deleted from another device
+        goBack();
+      }
     }
   } catch(e) {}
 }
@@ -586,6 +669,39 @@ function openFirm(firm) {
   startSync();
 }
 
+// ── ORDER NUMBERING ───────────────────────────────────────────────────────
+// Order numbers are NOT stored — they are derived from current array position.
+// Newest order (top of list, index 0) is always Order #1.
+function orderNumber(o) {
+  const list = orders[currentFirm] || [];
+  const idx = list.findIndex(x => x.id === o.id);
+  return idx === -1 ? null : idx + 1;
+}
+
+// ── DISPATCH DATE / MONDAY RULE ───────────────────────────────────────────
+function dispatchDate(o) {
+  const d = new Date(o.date);
+  d.setDate(d.getDate() + Number(o.days));
+  // Factory never dispatches on Monday — push to Tuesday
+  if (d.getDay() === 1) { // 0=Sun, 1=Mon
+    d.setDate(d.getDate() + 1);
+  }
+  return d.toISOString().split('T')[0];
+}
+
+function daysUntil(dateStr) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const target = new Date(dateStr);
+  return Math.round((target - today) / 86400000);
+}
+
+function daysLabel(n) {
+  if (n < 0) return Math.abs(n) + 'd overdue';
+  if (n === 0) return 'today';
+  if (n === 1) return 'tomorrow';
+  return n + ' days left';
+}
+
 // ── RENDER ORDER LIST ─────────────────────────────────────────────────────
 function renderOrders() {
   const list = orders[currentFirm] || [];
@@ -602,14 +718,29 @@ function renderOrders() {
   }
 
   function card(o) {
+    const num = orderNumber(o);
     const prog = { pending:0, cutting:33, scheduled:66, dispatched:100 }[o.status];
     const dispatch = dispatchDate(o);
     const daysLeft = daysUntil(dispatch);
-    const urgentClass = (o.status === 'scheduled' && daysLeft <= 1) ? 'urgent' : '';
+    const notDispatched = o.status !== 'dispatched';
+    let highlightClass = '';
+    if (notDispatched && daysLeft === 0) highlightClass = 'dispatch-today';
+    else if (notDispatched && daysLeft === 1) highlightClass = 'dispatch-tomorrow';
+
+    let dispatchTag = '';
+    if (notDispatched) {
+      if (daysLeft === 0) dispatchTag = ' (🚚 today)';
+      else if (daysLeft === 1) dispatchTag = ' (⚠ tomorrow)';
+      else dispatchTag = ' (' + daysLabel(daysLeft) + ')';
+    }
+
     return `
-    <div class="order-card" onclick="openDetail('${o.id}')">
+    <div class="order-card ${highlightClass}" onclick="openDetail('${o.id}')">
       <div class="order-top">
         <div>
+          <div class="order-name-row">
+            <span class="order-number">Order #${num}</span>
+          </div>
           <div class="order-name">${o.name}</div>
           <div class="order-qty">${Number(o.qty).toLocaleString()} pieces</div>
         </div>
@@ -617,7 +748,7 @@ function renderOrders() {
       </div>
       <div class="order-meta">
         <span>📅 Ordered ${fmt(o.date)}</span>
-        <span>🚚 Dispatch ${fmt(dispatch)} ${daysLeft !== null && o.status !== 'dispatched' ? '('+daysLabel(daysLeft)+')' : ''}</span>
+        <span>🚚 Dispatch ${fmt(dispatch)}${dispatchTag}</span>
       </div>
       <div class="progress-bar"><div class="progress-fill" style="width:${prog}%"></div></div>
     </div>`;
@@ -635,11 +766,13 @@ function renderOrders() {
 function openDetail(id) {
   currentOrderId = id;
   const o = getOrder(id);
-  if (!o) return;
+  if (!o) { goBack(); return; }
 
   const detailScreen = document.getElementById('detail-screen');
   detailScreen.className = 'screen active ' + (currentFirm === 'nonu' ? 'nonu-theme' : 'wd-theme');
 
+  const num = orderNumber(o);
+  document.getElementById('detail-number-tag').textContent = `Order #${num}`;
   document.getElementById('detail-name').textContent = o.name;
   document.getElementById('detail-sub').textContent = `${Number(o.qty).toLocaleString()} pieces · ${currentFirm === 'nonu' ? 'Nonu Garments' : 'WD Textile'}`;
   document.getElementById('detail-status-badge').textContent = STATUS_LABELS[o.status];
@@ -647,14 +780,26 @@ function openDetail(id) {
 
   const dispatch = dispatchDate(o);
   const daysLeft = daysUntil(dispatch);
+  const notDispatched = o.status !== 'dispatched';
 
-  // Alert box
+  // Alert box — dispatch reminder (today / tomorrow) takes priority over normal status alerts
   let alertHtml = '';
-  if (o.status === 'scheduled') {
-    const urgent = daysLeft <= 1;
-    alertHtml = `<div class="dispatch-alert ${urgent ? 'urgent' : ''}">
-      <span>${urgent ? '🔴' : '🟢'}</span>
-      <div><strong>${urgent ? 'Dispatch TODAY/TOMORROW!' : 'Dispatch on track'}</strong><br>
+  if (notDispatched && daysLeft === 0) {
+    alertHtml = `<div class="dispatch-alert today">
+      <span>🚚</span>
+      <div><strong>Dispatch Today</strong><br>
+      This order is scheduled to dispatch today (${fmt(dispatch)}).</div>
+    </div>`;
+  } else if (notDispatched && daysLeft === 1) {
+    alertHtml = `<div class="dispatch-alert urgent">
+      <span>⚠</span>
+      <div><strong>Dispatch Tomorrow</strong><br>
+      Dispatch scheduled for tomorrow (${fmt(dispatch)}).</div>
+    </div>`;
+  } else if (o.status === 'scheduled') {
+    alertHtml = `<div class="dispatch-alert">
+      <span>🟢</span>
+      <div><strong>Dispatch on track</strong><br>
       Scheduled for ${fmt(dispatch)} — ${daysLabel(daysLeft)}</div>
     </div>`;
   } else if (o.status === 'dispatched') {
@@ -708,6 +853,14 @@ function openDetail(id) {
   });
   document.getElementById('timeline-steps').innerHTML = tlHtml;
 
+  // Delete section (admin only)
+  const deleteSection = document.getElementById('delete-section');
+  if (isAdmin) {
+    deleteSection.innerHTML = `<button class="btn-delete-order" onclick="openDeleteModal('${id}')">🗑 Delete Order</button>`;
+  } else {
+    deleteSection.innerHTML = '';
+  }
+
   show('detail-screen');
 }
 
@@ -724,6 +877,31 @@ function advanceStage(id) {
   saveAndSync();
   showToast(STATUS_LABELS[next] + ' ✓');
   openDetail(id);
+}
+
+// ── DELETE ORDER (admin only) ─────────────────────────────────────────────
+function openDeleteModal(id) {
+  if (!isAdmin) {
+    openPinModal(() => openDeleteModal(id));
+    return;
+  }
+  orderToDeleteId = id;
+  document.getElementById('delete-modal').classList.add('open');
+}
+
+function confirmDeleteOrder() {
+  if (!orderToDeleteId) return;
+  const list = orders[currentFirm] || [];
+  const idx = list.findIndex(o => o.id === orderToDeleteId);
+  if (idx !== -1) {
+    list.splice(idx, 1); // remove — remaining orders auto-renumber since numbers are derived from position
+  }
+  orderToDeleteId = null;
+  closeModal('delete-modal');
+  saveAndSync();
+  showToast('Order deleted ✓');
+  goBack();
+  renderOrders();
 }
 
 // ── ADD ORDER ─────────────────────────────────────────────────────────────
@@ -745,6 +923,7 @@ function saveOrder() {
   const days = document.getElementById('inp-days').value;
   if (!name || !qty || !date || !days) { showToast('Please fill all fields'); return; }
 
+  // New orders always go to the top (index 0) — they automatically become Order #1
   orders[currentFirm].unshift({
     id: Date.now().toString(),
     name, qty, date, days,
@@ -815,25 +994,6 @@ function getOrder(id) {
   return (orders[currentFirm] || []).find(o => o.id === id);
 }
 
-function dispatchDate(o) {
-  const d = new Date(o.date);
-  d.setDate(d.getDate() + Number(o.days));
-  return d.toISOString().split('T')[0];
-}
-
-function daysUntil(dateStr) {
-  const today = new Date(); today.setHours(0,0,0,0);
-  const target = new Date(dateStr);
-  return Math.round((target - today) / 86400000);
-}
-
-function daysLabel(n) {
-  if (n < 0) return Math.abs(n) + 'd overdue';
-  if (n === 0) return 'today';
-  if (n === 1) return 'tomorrow';
-  return n + ' days left';
-}
-
 function fmt(dateStr) {
   if (!dateStr) return '—';
   const d = new Date(dateStr);
@@ -867,6 +1027,13 @@ document.querySelectorAll('.modal-overlay').forEach(el => {
     if (e.target === el) el.classList.remove('open');
   });
 });
+
+// ── PWA: register service worker ──────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').catch(() => {});
+  });
+}
 </script>
 </body>
 </html>

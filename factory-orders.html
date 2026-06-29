@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Factory Orders</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3248;
+    --accent-nonu: #6c63ff;
+    --accent-wd: #ff6b35;
+    --text: #f0f0f5;
+    --muted: #7b80a0;
+    --green: #22c55e;
+    --yellow: #f59e0b;
+    --red: #ef4444;
+    --radius: 14px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overscroll-behavior: none;
+  }
+
+  /* ── SCREENS ── */
+  .screen { display: none; min-height: 100vh; }
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* ── HOME ── */
+  #home {
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    gap: 20px;
+    background: radial-gradient(ellipse at 50% 0%, #1e1b4b 0%, var(--bg) 60%);
+  }
+
+  .home-header {
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .home-header .tag {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .home-header h1 {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+  }
+  .home-header p {
+    font-size: 14px;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+
+  .firm-card {
+    width: 100%;
+    max-width: 340px;
+    border-radius: var(--radius);
+    padding: 28px 24px;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    transition: transform 0.15s, box-shadow 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .firm-card:active { transform: scale(0.97); }
+
+  .firm-card.nonu {
+    background: linear-gradient(135deg, #1e1b4b 0%, #2d2875 100%);
+    border-color: #4c46a8;
+  }
+  .firm-card.wd {
+    background: linear-gradient(135deg, #2a1810 0%, #7c2d12 100%);
+    border-color: #9a3412;
+  }
+
+  .firm-card .firm-icon {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    margin-bottom: 14px;
+  }
+  .nonu .firm-icon { background: rgba(108,99,255,0.25); }
+  .wd  .firm-icon  { background: rgba(255,107,53,0.25); }
+
+  .firm-card h2 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .firm-card p  { font-size: 13px; color: rgba(255,255,255,0.55); }
+
+  .firm-card .arrow {
+    position: absolute; right: 22px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px; opacity: 0.4;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .topbar .back-btn {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: var(--surface2);
+    border: none; color: var(--text);
+    font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .topbar .title { font-size: 17px; font-weight: 700; flex: 1; }
+  .topbar .badge {
+    font-size: 11px; font-weight: 600;
+    padding: 4px 10px; border-radius: 20px;
+  }
+  .nonu-theme .badge { background: rgba(108,99,255,0.2); color: var(--accent-nonu); }
+  .wd-theme   .badge { background: rgba(255,107,53,0.2);  color: var(--accent-wd); }
+
+  /* ── CONTENT AREA ── */
+  .content { flex: 1; padding: 16px; overflow-y: auto; }
+
+  /* ── ADD ORDER BTN ── */
+  .fab {
+    position: fixed; bottom: 24px; right: 20px;
+    width: 54px; height: 54px;
+    border-radius: 16px;
+    border: none; color: #fff;
+    font-size: 26px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    z-index: 20;
+    transition: transform 0.15s;
+  }
+  .fab:active { transform: scale(0.93); }
+  .nonu-theme .fab { background: var(--accent-nonu); }
+  .wd-theme   .fab { background: var(--accent-wd); }
+  .fab.hidden { display: none; }
+
+  /* ── ORDER CARD ── */
+  .order-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .order-card:active { border-color: var(--muted); }
+
+  .order-top {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 10px;
+  }
+  .order-name { font-size: 16px; font-weight: 700; }
+  .order-qty  { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+  .status-pill {
+    font-size: 11px; font-weight: 600;
+    padding: 4px 10px; border-radius: 20px;
+    white-space: nowrap;
+  }
+  .s-pending   { background: rgba(245,158,11,0.15); color: var(--yellow); }
+  .s-cutting   { background: rgba(108,99,255,0.15); color: #a5a0ff; }
+  .s-scheduled { background: rgba(34,197,94,0.15);  color: var(--green); }
+  .s-dispatched{ background: rgba(100,100,120,0.15); color: var(--muted); }
+
+  .order-meta {
+    display: flex; gap: 16px; flex-wrap: wrap;
+    font-size: 12px; color: var(--muted);
+    margin-top: 8px;
+  }
+  .order-meta span { display: flex; align-items: center; gap: 4px; }
+
+  .progress-bar {
+    height: 4px; background: var(--surface2);
+    border-radius: 4px; margin-top: 14px; overflow: hidden;
+  }
+  .progress-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
+  .nonu-theme .progress-fill { background: var(--accent-nonu); }
+  .wd-theme   .progress-fill { background: var(--accent-wd); }
+
+  /* ── EMPTY STATE ── */
+  .empty {
+    text-align: center; padding: 60px 24px;
+    color: var(--muted);
+  }
+  .empty .icon { font-size: 48px; margin-bottom: 12px; }
+  .empty h3 { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .empty p  { font-size: 13px; line-height: 1.6; }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); z-index: 50;
+    align-items: flex-end; justify-content: center;
+    backdrop-filter: blur(2px);
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border-radius: 20px 20px 0 0;
+    padding: 24px 20px 36px;
+    width: 100%; max-width: 480px;
+    border-top: 1px solid var(--border);
+    max-height: 90vh; overflow-y: auto;
+  }
+
+  .modal-handle {
+    width: 36px; height: 4px;
+    background: var(--border);
+    border-radius: 4px;
+    margin: 0 auto 20px;
+  }
+
+  .modal h2 { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+
+  .field { margin-bottom: 16px; }
+  .field label { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase; display: block; margin-bottom: 8px; }
+  .field input, .field select {
+    width: 100%; padding: 12px 14px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text);
+    font-size: 15px; font-family: inherit; outline: none;
+    -webkit-appearance: none;
+  }
+  .field input:focus, .field select:focus { border-color: var(--muted); }
+
+  .modal-actions { display: flex; gap: 10px; margin-top: 22px; }
+  .btn-cancel {
+    flex: 1; padding: 13px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; color: var(--muted);
+    font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  .btn-save {
+    flex: 2; padding: 13px;
+    border: none; border-radius: 12px; color: #fff;
+    font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .nonu-theme .btn-save { background: var(--accent-nonu); }
+  .wd-theme   .btn-save { background: var(--accent-wd); }
+
+  /* ── DETAIL SCREEN ── */
+  .detail-header {
+    background: var(--surface);
+    padding: 20px 16px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .detail-header h2 { font-size: 22px; font-weight: 800; }
+  .detail-header .sub { font-size: 14px; color: var(--muted); margin-top: 4px; }
+
+  .timeline { padding: 20px 16px; }
+  .timeline h3 { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px; }
+
+  .tl-item {
+    display: flex; gap: 14px;
+    margin-bottom: 8px;
+  }
+  .tl-left {
+    display: flex; flex-direction: column; align-items: center; width: 28px;
+  }
+  .tl-dot {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; flex-shrink: 0;
+    border: 2px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+  }
+  .tl-dot.done   { background: var(--green); border-color: var(--green); color: #fff; }
+  .tl-dot.active { border-color: currentColor; }
+  .nonu-theme .tl-dot.active { color: var(--accent-nonu); background: rgba(108,99,255,0.1); }
+  .wd-theme   .tl-dot.active { color: var(--accent-wd);   background: rgba(255,107,53,0.1); }
+
+  .tl-line {
+    width: 2px; flex: 1; min-height: 16px;
+    background: var(--border);
+    margin: 4px 0;
+  }
+
+  .tl-right { padding-top: 4px; flex: 1; padding-bottom: 16px; }
+  .tl-right h4 { font-size: 15px; font-weight: 600; }
+  .tl-right p  { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+  .stage-btn {
+    width: 100%; margin-top: 10px; padding: 12px;
+    border-radius: 10px; border: 1px solid var(--border);
+    background: var(--surface2); color: var(--text);
+    font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+    transition: background 0.15s;
+  }
+  .nonu-theme .stage-btn.primary { background: var(--accent-nonu); border-color: var(--accent-nonu); color: #fff; }
+  .wd-theme   .stage-btn.primary { background: var(--accent-wd);   border-color: var(--accent-wd);   color: #fff; }
+
+  .info-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px; padding: 0 16px 16px;
+  }
+  .info-box {
+    background: var(--surface2); border-radius: 12px;
+    padding: 14px; border: 1px solid var(--border);
+  }
+  .info-box .lbl { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .info-box .val { font-size: 16px; font-weight: 700; }
+
+  .dispatch-alert {
+    margin: 0 16px 16px;
+    background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3);
+    border-radius: 12px; padding: 14px;
+    font-size: 13px; color: var(--green);
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .dispatch-alert.urgent {
+    background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3); color: var(--red);
+  }
+
+  /* ── PIN MODAL ── */
+  .pin-modal { text-align: center; }
+  .pin-modal h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+  .pin-modal p  { font-size: 14px; color: var(--muted); margin-bottom: 24px; }
+  .pin-dots { display: flex; gap: 12px; justify-content: center; margin-bottom: 24px; }
+  .pin-dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--surface2); border: 2px solid var(--border);
+    transition: background 0.2s;
+  }
+  .pin-dot.filled { background: var(--accent-nonu); border-color: var(--accent-nonu); }
+  .numpad { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+  .num-btn {
+    padding: 16px; border-radius: 12px;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); font-size: 20px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+    transition: background 0.1s;
+  }
+  .num-btn:active { background: var(--border); }
+  .num-btn.del { font-size: 16px; }
+  .pin-error { color: var(--red); font-size: 13px; margin-bottom: 12px; min-height: 18px; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+    background: #1e293b; color: #fff; padding: 10px 20px;
+    border-radius: 20px; font-size: 13px; font-weight: 500;
+    white-space: nowrap; z-index: 100;
+    animation: fadeInUp 0.3s ease;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translate(-50%, 10px); }
+    to   { opacity: 1; transform: translate(-50%, 0); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ HOME SCREEN ══ -->
+<div id="home" class="screen active">
+  <div class="home-header">
+    <div class="tag">Factory Management</div>
+    <h1>Order Tracker</h1>
+    <p>Select a firm to manage orders</p>
+  </div>
+  <div class="firm-card nonu" onclick="openFirm('nonu')">
+    <div class="firm-icon">🧵</div>
+    <h2>Nonu Garments</h2>
+    <p>Tap to view orders</p>
+    <span class="arrow">›</span>
+  </div>
+  <div class="firm-card wd" onclick="openFirm('wd')">
+    <div class="firm-icon">🏭</div>
+    <h2>WD Textile</h2>
+    <p>Tap to view orders</p>
+    <span class="arrow">›</span>
+  </div>
+</div>
+
+<!-- ══ ORDERS LIST SCREEN ══ -->
+<div id="orders-screen" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="goHome()">‹</button>
+    <span class="title" id="firm-title">Orders</span>
+    <span class="badge" id="order-count">0 orders</span>
+  </div>
+  <div class="content" id="orders-list"></div>
+  <button class="fab" id="add-fab" onclick="openAddModal()">+</button>
+</div>
+
+<!-- ══ ORDER DETAIL SCREEN ══ -->
+<div id="detail-screen" class="screen">
+  <div class="topbar">
+    <button class="back-btn" onclick="goBack()">‹</button>
+    <span class="title">Order Detail</span>
+    <span class="badge" id="detail-status-badge"></span>
+  </div>
+  <div class="detail-header">
+    <h2 id="detail-name"></h2>
+    <div class="sub" id="detail-sub"></div>
+  </div>
+  <div id="detail-alert"></div>
+  <div class="info-grid" id="detail-info-grid"></div>
+  <div class="timeline">
+    <h3>Timeline</h3>
+    <div id="timeline-steps"></div>
+  </div>
+</div>
+
+<!-- ══ ADD ORDER MODAL ══ -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal nonu-theme" id="add-modal-inner">
+    <div class="modal-handle"></div>
+    <h2>New Order</h2>
+    <div class="field">
+      <label>Item / Style Name</label>
+      <input type="text" id="inp-name" placeholder="e.g. Apple Cut, Round Neck...">
+    </div>
+    <div class="field">
+      <label>Quantity (pieces)</label>
+      <input type="number" id="inp-qty" placeholder="e.g. 1000">
+    </div>
+    <div class="field">
+      <label>Order Date</label>
+      <input type="date" id="inp-date">
+    </div>
+    <div class="field">
+      <label>Dispatch in how many days?</label>
+      <input type="number" id="inp-days" placeholder="e.g. 7">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('add-modal')">Cancel</button>
+      <button class="btn-save" onclick="saveOrder()">Add Order</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PIN MODAL ══ -->
+<div class="modal-overlay" id="pin-modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="pin-modal">
+      <h2>🔐 Admin Access</h2>
+      <p>Enter PIN to add or manage orders</p>
+      <div class="pin-dots" id="pin-dots">
+        <div class="pin-dot" id="pd0"></div>
+        <div class="pin-dot" id="pd1"></div>
+        <div class="pin-dot" id="pd2"></div>
+        <div class="pin-dot" id="pd3"></div>
+      </div>
+      <div class="pin-error" id="pin-error"></div>
+      <div class="numpad">
+        <button class="num-btn" onclick="pinKey('1')">1</button>
+        <button class="num-btn" onclick="pinKey('2')">2</button>
+        <button class="num-btn" onclick="pinKey('3')">3</button>
+        <button class="num-btn" onclick="pinKey('4')">4</button>
+        <button class="num-btn" onclick="pinKey('5')">5</button>
+        <button class="num-btn" onclick="pinKey('6')">6</button>
+        <button class="num-btn" onclick="pinKey('7')">7</button>
+        <button class="num-btn" onclick="pinKey('8')">8</button>
+        <button class="num-btn" onclick="pinKey('9')">9</button>
+        <button class="num-btn" onclick="pinKey('0')">0</button>
+        <button class="num-btn del" onclick="pinDel()">⌫</button>
+        <button class="num-btn" onclick="closeModal('pin-modal')" style="font-size:12px">✕</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────────────
+const ADMIN_PIN = "1234"; // ← Change this to your secret PIN
+const STORAGE_KEY = "factory_orders_v1";
+
+// JSONBin for cloud sync (free — create account at jsonbin.io and paste your bin ID + API key)
+// If left empty, app works offline with localStorage only
+const JSONBIN_BIN_ID = "";   // e.g. "6678abc123..."
+const JSONBIN_API_KEY = "";  // e.g. "$2a$10$..."
+
+// ── STATE ────────────────────────────────────────────────────────────────
+let currentFirm = null;
+let currentOrderId = null;
+let isAdmin = false;
+let pinBuffer = "";
+let orders = { nonu: [], wd: [] };
+let syncInterval = null;
+
+const STATUSES = ["pending", "cutting", "scheduled", "dispatched"];
+const STATUS_LABELS = {
+  pending: "Pending", cutting: "Cutting", scheduled: "Scheduled", dispatched: "Dispatched"
+};
+
+// ── STORAGE / SYNC ────────────────────────────────────────────────────────
+function loadLocal() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) orders = JSON.parse(raw);
+}
+
+function saveLocal() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
+}
+
+async function pushToCloud() {
+  if (!JSONBIN_BIN_ID || !JSONBIN_API_KEY) return;
+  try {
+    await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "X-Master-Key": JSONBIN_API_KEY },
+      body: JSON.stringify(orders)
+    });
+  } catch(e) {}
+}
+
+async function pullFromCloud() {
+  if (!JSONBIN_BIN_ID || !JSONBIN_API_KEY) return;
+  try {
+    const r = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+      headers: { "X-Master-Key": JSONBIN_API_KEY }
+    });
+    const d = await r.json();
+    if (d.record) {
+      orders = d.record;
+      saveLocal();
+      if (currentFirm) renderOrders();
+    }
+  } catch(e) {}
+}
+
+function startSync() {
+  if (JSONBIN_BIN_ID && JSONBIN_API_KEY) {
+    syncInterval = setInterval(pullFromCloud, 10000); // poll every 10s
+    pullFromCloud();
+  }
+}
+
+function stopSync() {
+  if (syncInterval) clearInterval(syncInterval);
+}
+
+// ── NAVIGATION ───────────────────────────────────────────────────────────
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function goHome() {
+  stopSync();
+  currentFirm = null;
+  show('home');
+}
+
+function goBack() {
+  show('orders-screen');
+  currentOrderId = null;
+}
+
+function openFirm(firm) {
+  currentFirm = firm;
+  const screen = document.getElementById('orders-screen');
+  screen.className = 'screen active ' + (firm === 'nonu' ? 'nonu-theme' : 'wd-theme');
+  document.getElementById('firm-title').textContent = firm === 'nonu' ? 'Nonu Garments' : 'WD Textile';
+
+  const fab = document.getElementById('add-fab');
+  if (isAdmin) fab.classList.remove('hidden');
+  else fab.classList.add('hidden');
+
+  renderOrders();
+  show('orders-screen');
+  startSync();
+}
+
+// ── RENDER ORDER LIST ─────────────────────────────────────────────────────
+function renderOrders() {
+  const list = orders[currentFirm] || [];
+  const el   = document.getElementById('orders-list');
+  const cnt  = document.getElementById('order-count');
+
+  const active = list.filter(o => o.status !== 'dispatched');
+  const done   = list.filter(o => o.status === 'dispatched');
+  cnt.textContent = list.length + (list.length === 1 ? ' order' : ' orders');
+
+  if (!list.length) {
+    el.innerHTML = `<div class="empty"><div class="icon">📦</div><h3>No orders yet</h3><p>Ask the admin to add<br>the first order.</p></div>`;
+    return;
+  }
+
+  function card(o) {
+    const prog = { pending:0, cutting:33, scheduled:66, dispatched:100 }[o.status];
+    const dispatch = dispatchDate(o);
+    const daysLeft = daysUntil(dispatch);
+    const urgentClass = (o.status === 'scheduled' && daysLeft <= 1) ? 'urgent' : '';
+    return `
+    <div class="order-card" onclick="openDetail('${o.id}')">
+      <div class="order-top">
+        <div>
+          <div class="order-name">${o.name}</div>
+          <div class="order-qty">${Number(o.qty).toLocaleString()} pieces</div>
+        </div>
+        <span class="status-pill s-${o.status}">${STATUS_LABELS[o.status]}</span>
+      </div>
+      <div class="order-meta">
+        <span>📅 Ordered ${fmt(o.date)}</span>
+        <span>🚚 Dispatch ${fmt(dispatch)} ${daysLeft !== null && o.status !== 'dispatched' ? '('+daysLabel(daysLeft)+')' : ''}</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${prog}%"></div></div>
+    </div>`;
+  }
+
+  let html = active.map(card).join('');
+  if (done.length) {
+    html += `<div style="font-size:12px;color:var(--muted);font-weight:600;letter-spacing:1px;text-transform:uppercase;margin:20px 0 10px;">Dispatched</div>`;
+    html += done.map(card).join('');
+  }
+  el.innerHTML = html;
+}
+
+// ── ORDER DETAIL ──────────────────────────────────────────────────────────
+function openDetail(id) {
+  currentOrderId = id;
+  const o = getOrder(id);
+  if (!o) return;
+
+  const detailScreen = document.getElementById('detail-screen');
+  detailScreen.className = 'screen active ' + (currentFirm === 'nonu' ? 'nonu-theme' : 'wd-theme');
+
+  document.getElementById('detail-name').textContent = o.name;
+  document.getElementById('detail-sub').textContent = `${Number(o.qty).toLocaleString()} pieces · ${currentFirm === 'nonu' ? 'Nonu Garments' : 'WD Textile'}`;
+  document.getElementById('detail-status-badge').textContent = STATUS_LABELS[o.status];
+  document.getElementById('detail-status-badge').className = 'badge status-pill s-' + o.status;
+
+  const dispatch = dispatchDate(o);
+  const daysLeft = daysUntil(dispatch);
+
+  // Alert box
+  let alertHtml = '';
+  if (o.status === 'scheduled') {
+    const urgent = daysLeft <= 1;
+    alertHtml = `<div class="dispatch-alert ${urgent ? 'urgent' : ''}">
+      <span>${urgent ? '🔴' : '🟢'}</span>
+      <div><strong>${urgent ? 'Dispatch TODAY/TOMORROW!' : 'Dispatch on track'}</strong><br>
+      Scheduled for ${fmt(dispatch)} — ${daysLabel(daysLeft)}</div>
+    </div>`;
+  } else if (o.status === 'dispatched') {
+    alertHtml = `<div class="dispatch-alert">✅ <div>Dispatched on ${fmt(o.dispatchedOn || dispatch)}</div></div>`;
+  }
+  document.getElementById('detail-alert').innerHTML = alertHtml;
+
+  // Info grid
+  document.getElementById('detail-info-grid').innerHTML = `
+    <div class="info-box"><div class="lbl">Order Date</div><div class="val">${fmt(o.date)}</div></div>
+    <div class="info-box"><div class="lbl">Quantity</div><div class="val">${Number(o.qty).toLocaleString()}</div></div>
+    <div class="info-box"><div class="lbl">Dispatch In</div><div class="val">${o.days} days</div></div>
+    <div class="info-box"><div class="lbl">Dispatch Date</div><div class="val">${fmt(dispatch)}</div></div>
+  `;
+
+  // Timeline
+  const steps = [
+    { key: 'pending',    label: 'Order Received', sub: fmt(o.date) },
+    { key: 'cutting',    label: 'Cutting',         sub: o.cuttingDate ? fmt(o.cuttingDate) : 'Not started' },
+    { key: 'scheduled',  label: 'Dispatch Scheduled', sub: fmt(dispatch) },
+    { key: 'dispatched', label: 'Dispatched',      sub: o.dispatchedOn ? fmt(o.dispatchedOn) : fmt(dispatch) },
+  ];
+
+  const si = STATUSES.indexOf(o.status);
+  let tlHtml = '';
+  steps.forEach((step, i) => {
+    const done   = i < si;
+    const active = i === si;
+    const dotClass = done ? 'done' : (active ? 'active' : '');
+    const icon = done ? '✓' : (i + 1);
+    const isLast = i === steps.length - 1;
+
+    let actionBtn = '';
+    if (active && i < steps.length - 1) {
+      const nextLabels = ['','Mark Cutting Done ✂️','Confirm Dispatch Scheduled 📅','Mark as Dispatched 🚚'];
+      actionBtn = `<button class="stage-btn primary" onclick="advanceStage('${id}')">${nextLabels[i+1] || 'Advance'}</button>`;
+    }
+
+    tlHtml += `
+    <div class="tl-item">
+      <div class="tl-left">
+        <div class="tl-dot ${dotClass}">${icon}</div>
+        ${!isLast ? '<div class="tl-line"></div>' : ''}
+      </div>
+      <div class="tl-right">
+        <h4>${step.label}</h4>
+        <p>${step.sub}</p>
+        ${actionBtn}
+      </div>
+    </div>`;
+  });
+  document.getElementById('timeline-steps').innerHTML = tlHtml;
+
+  show('detail-screen');
+}
+
+function advanceStage(id) {
+  const o = getOrder(id);
+  if (!o) return;
+  const si = STATUSES.indexOf(o.status);
+  if (si >= STATUSES.length - 1) return;
+  const next = STATUSES[si + 1];
+  const today = todayStr();
+  if (next === 'cutting')    o.cuttingDate   = today;
+  if (next === 'dispatched') o.dispatchedOn  = today;
+  o.status = next;
+  saveAndSync();
+  showToast(STATUS_LABELS[next] + ' ✓');
+  openDetail(id);
+}
+
+// ── ADD ORDER ─────────────────────────────────────────────────────────────
+function openAddModal() {
+  if (!isAdmin) {
+    openPinModal(() => openAddModal());
+    return;
+  }
+  const modal = document.getElementById('add-modal-inner');
+  modal.className = 'modal ' + (currentFirm === 'nonu' ? 'nonu-theme' : 'wd-theme');
+  document.getElementById('inp-date').value = todayStr();
+  document.getElementById('add-modal').classList.add('open');
+}
+
+function saveOrder() {
+  const name = document.getElementById('inp-name').value.trim();
+  const qty  = document.getElementById('inp-qty').value;
+  const date = document.getElementById('inp-date').value;
+  const days = document.getElementById('inp-days').value;
+  if (!name || !qty || !date || !days) { showToast('Please fill all fields'); return; }
+
+  orders[currentFirm].unshift({
+    id: Date.now().toString(),
+    name, qty, date, days,
+    status: 'pending',
+    cuttingDate: null,
+    dispatchedOn: null
+  });
+
+  saveAndSync();
+  closeModal('add-modal');
+  document.getElementById('inp-name').value = '';
+  document.getElementById('inp-qty').value = '';
+  document.getElementById('inp-days').value = '';
+  renderOrders();
+  showToast('Order added ✓');
+}
+
+// ── PIN ───────────────────────────────────────────────────────────────────
+let pinCallback = null;
+
+function openPinModal(cb) {
+  pinCallback = cb;
+  pinBuffer = '';
+  updatePinDots();
+  document.getElementById('pin-error').textContent = '';
+  document.getElementById('pin-modal').classList.add('open');
+}
+
+function pinKey(k) {
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += k;
+  updatePinDots();
+  if (pinBuffer.length === 4) {
+    setTimeout(() => {
+      if (pinBuffer === ADMIN_PIN) {
+        isAdmin = true;
+        closeModal('pin-modal');
+        document.getElementById('add-fab').classList.remove('hidden');
+        showToast('Admin access granted ✓');
+        if (pinCallback) { pinCallback(); pinCallback = null; }
+      } else {
+        document.getElementById('pin-error').textContent = 'Wrong PIN. Try again.';
+        pinBuffer = '';
+        updatePinDots();
+      }
+    }, 200);
+  }
+}
+
+function pinDel() {
+  pinBuffer = pinBuffer.slice(0, -1);
+  updatePinDots();
+}
+
+function updatePinDots() {
+  for (let i = 0; i < 4; i++) {
+    const el = document.getElementById('pd' + i);
+    if (el) el.className = 'pin-dot' + (i < pinBuffer.length ? ' filled' : '');
+  }
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+function getOrder(id) {
+  return (orders[currentFirm] || []).find(o => o.id === id);
+}
+
+function dispatchDate(o) {
+  const d = new Date(o.date);
+  d.setDate(d.getDate() + Number(o.days));
+  return d.toISOString().split('T')[0];
+}
+
+function daysUntil(dateStr) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const target = new Date(dateStr);
+  return Math.round((target - today) / 86400000);
+}
+
+function daysLabel(n) {
+  if (n < 0) return Math.abs(n) + 'd overdue';
+  if (n === 0) return 'today';
+  if (n === 1) return 'tomorrow';
+  return n + ' days left';
+}
+
+function fmt(dateStr) {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' });
+}
+
+function todayStr() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function saveAndSync() {
+  saveLocal();
+  pushToCloud();
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+loadLocal();
+document.getElementById('inp-date').value = todayStr();
+
+// Close modals on overlay tap
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => {
+    if (e.target === el) el.classList.remove('open');
+  });
+});
+</script>
+</body>
+</html>
